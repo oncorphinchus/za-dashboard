@@ -4,6 +4,15 @@ import { disableCertificateVerification } from '@/lib/httpClient';
 // Disable certificate verification at module level for server-side code
 disableCertificateVerification();
 
+// Helper function to join URL paths correctly without double slashes
+function joinUrl(base: string, path: string): string {
+  // Remove trailing slash from base if it exists
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  // Remove leading slash from path if it exists
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${cleanBase}${cleanPath}`;
+}
+
 export async function GET() {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL;
@@ -17,11 +26,11 @@ export async function GET() {
 
     // Try different possible endpoint paths
     const possibleEndpoints = [
-      '/servers-list',  // Try our new endpoint first
-      '/servers',
-      '/api/servers',
-      '/api/v1/servers',
-      '/v1/servers'
+      'servers-list',  // Try our new endpoint first
+      'servers',
+      'api/servers',
+      'api/v1/servers',
+      'v1/servers'
     ];
 
     let response;
@@ -29,19 +38,20 @@ export async function GET() {
 
     for (const endpoint of possibleEndpoints) {
       try {
-        console.log(`Trying endpoint: ${backendUrl}${endpoint}`);
-        response = await fetch(`${backendUrl}${endpoint}`, {
+        const fullUrl = joinUrl(backendUrl, endpoint);
+        console.log(`Trying endpoint: ${fullUrl}`);
+        response = await fetch(fullUrl, {
           headers: {
             'Authorization': `Bearer ${apiKey}`,
           },
           cache: 'no-store',
         });
         
-        console.log(`Attempting fetch from ${backendUrl}${endpoint}, status: ${response?.status}`);
+        console.log(`Attempting fetch from ${fullUrl}, status: ${response?.status}`);
         
         if (response.ok) {
           endpointUsed = endpoint;
-          console.log(`Successfully found servers at: ${backendUrl}${endpoint}`);
+          console.log(`Successfully found servers at: ${fullUrl}`);
           break;
         }
       } catch (error) {

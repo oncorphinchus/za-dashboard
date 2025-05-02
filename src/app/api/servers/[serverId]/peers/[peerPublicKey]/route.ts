@@ -14,6 +14,15 @@ const headers = {
   'Authorization': `Bearer ${API_KEY}`
 };
 
+// Helper function to join URL paths correctly without double slashes
+function joinUrl(base: string, path: string): string {
+  // Remove trailing slash from base if it exists
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  // Remove leading slash from path if it exists
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${cleanBase}${cleanPath}`;
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: { serverId: string, peerPublicKey: string } }
@@ -45,12 +54,12 @@ export async function DELETE(
 
     // Try different possible endpoint paths
     const possibleEndpoints = [
-      `/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
-      `/api/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
-      `/api/v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
-      `/v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
-      `/server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
-      `/api/server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `api/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `api/v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `api/server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
     ];
 
     let response;
@@ -58,19 +67,20 @@ export async function DELETE(
 
     for (const endpoint of possibleEndpoints) {
       try {
-        console.log(`Trying endpoint: ${backendUrl}${endpoint}`);
-        response = await fetch(`${backendUrl}${endpoint}`, {
+        const fullUrl = joinUrl(backendUrl, endpoint);
+        console.log(`Trying endpoint: ${fullUrl}`);
+        response = await fetch(fullUrl, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
           },
         });
         
-        console.log(`Delete peer request to ${backendUrl}${endpoint}, status: ${response?.status}`);
+        console.log(`Delete peer request to ${fullUrl}, status: ${response?.status}`);
         
         if (response.ok) {
           endpointUsed = endpoint;
-          console.log(`Successfully removed peer via endpoint: ${backendUrl}${endpoint}`);
+          console.log(`Successfully removed peer via endpoint: ${fullUrl}`);
           break;
         }
       } catch (error) {

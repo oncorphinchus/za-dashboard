@@ -14,6 +14,15 @@ const headers = {
   'Authorization': `Bearer ${API_KEY}`
 };
 
+// Helper function to join URL paths correctly without double slashes
+function joinUrl(base: string, path: string): string {
+  // Remove trailing slash from base if it exists
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  // Remove leading slash from path if it exists
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${cleanBase}${cleanPath}`;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: { serverId: string } }
@@ -39,13 +48,13 @@ export async function GET(
     // Prioritize the correct endpoint based on our backend implementation
     // then try fallbacks if needed
     const possibleEndpoints = [
-      `/servers/${serverId}/status`,
-      `/api/servers/${serverId}/status`,  
-      `/servers-status/${serverId}`,
-      `/api/v1/servers/${serverId}/status`,
-      `/v1/servers/${serverId}/status`,
-      `/server/${serverId}/status`,
-      `/api/server/${serverId}/status`
+      `servers/${serverId}/status`,
+      `api/servers/${serverId}/status`,  
+      `servers-status/${serverId}`,
+      `api/v1/servers/${serverId}/status`,
+      `v1/servers/${serverId}/status`,
+      `server/${serverId}/status`,
+      `api/server/${serverId}/status`
     ];
 
     let response;
@@ -53,19 +62,20 @@ export async function GET(
 
     for (const endpoint of possibleEndpoints) {
       try {
-        console.log(`Trying status endpoint: ${backendUrl}${endpoint}`);
-        response = await fetch(`${backendUrl}${endpoint}`, {
+        const fullUrl = joinUrl(backendUrl, endpoint);
+        console.log(`Trying status endpoint: ${fullUrl}`);
+        response = await fetch(fullUrl, {
           headers: {
             'Authorization': `Bearer ${apiKey}`,
           },
           cache: 'no-store',
         });
         
-        console.log(`Status fetch from ${backendUrl}${endpoint}, status: ${response?.status}`);
+        console.log(`Status fetch from ${fullUrl}, status: ${response?.status}`);
         
         if (response.ok) {
           endpointUsed = endpoint;
-          console.log(`Successfully found server status at: ${backendUrl}${endpoint}`);
+          console.log(`Successfully found server status at: ${fullUrl}`);
           break;
         }
       } catch (error) {

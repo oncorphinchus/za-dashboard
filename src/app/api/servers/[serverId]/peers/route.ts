@@ -4,6 +4,15 @@ import { disableCertificateVerification } from '@/lib/httpClient';
 // Disable certificate verification at module level for server-side code
 disableCertificateVerification();
 
+// Helper function to join URL paths correctly without double slashes
+function joinUrl(base: string, path: string): string {
+  // Remove trailing slash from base if it exists
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  // Remove leading slash from path if it exists
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${cleanBase}${cleanPath}`;
+}
+
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
 const API_KEY = process.env.MANAGEMENT_BACKEND_API_KEY || '';
@@ -46,12 +55,12 @@ export async function POST(
 
     // Try different possible endpoint paths
     const possibleEndpoints = [
-      `/servers/${serverId}/peers`,
-      `/api/servers/${serverId}/peers`,
-      `/api/v1/servers/${serverId}/peers`,
-      `/v1/servers/${serverId}/peers`,
-      `/server/${serverId}/peers`,
-      `/api/server/${serverId}/peers`,
+      `servers/${serverId}/peers`,
+      `api/servers/${serverId}/peers`,
+      `api/v1/servers/${serverId}/peers`,
+      `v1/servers/${serverId}/peers`,
+      `server/${serverId}/peers`,
+      `api/server/${serverId}/peers`,
     ];
 
     let response;
@@ -59,8 +68,9 @@ export async function POST(
 
     for (const endpoint of possibleEndpoints) {
       try {
-        console.log(`Trying endpoint: ${backendUrl}${endpoint}`);
-        response = await fetch(`${backendUrl}${endpoint}`, {
+        const fullUrl = joinUrl(backendUrl, endpoint);
+        console.log(`Trying endpoint: ${fullUrl}`);
+        response = await fetch(fullUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -69,11 +79,11 @@ export async function POST(
           body: JSON.stringify(body),
         });
         
-        console.log(`Add peer request to ${backendUrl}${endpoint}, status: ${response?.status}`);
+        console.log(`Add peer request to ${fullUrl}, status: ${response?.status}`);
         
         if (response.ok) {
           endpointUsed = endpoint;
-          console.log(`Successfully added peer via endpoint: ${backendUrl}${endpoint}`);
+          console.log(`Successfully added peer via endpoint: ${fullUrl}`);
           break;
         }
       } catch (error) {
