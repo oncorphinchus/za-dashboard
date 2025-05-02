@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createFetchOptions } from '@/lib/httpClient';
+import { disableCertificateVerification } from '@/lib/httpClient';
+
+// Disable certificate verification at module level for server-side code
+disableCertificateVerification();
 
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
@@ -17,20 +20,11 @@ export async function GET(
 ) {
   try {
     const { serverId } = params;
+    const backendUrl = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL;
+    const apiKey = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_API_KEY || process.env.MANAGEMENT_BACKEND_API_KEY;
 
-    // Validate environment variables
-    if (!API_URL) {
-      return NextResponse.json(
-        { error: 'Backend URL not configured' },
-        { status: 500 }
-      );
-    }
-
-    if (!API_KEY) {
-      return NextResponse.json(
-        { error: 'Backend API key not configured' },
-        { status: 500 }
-      );
+    if (!backendUrl || !apiKey) {
+      throw new Error('Missing required environment variables');
     }
 
     if (!serverId) {
@@ -40,14 +34,47 @@ export async function GET(
       );
     }
 
-    // Fetch server status from the backend with self-signed certificate handling
-    const response = await fetch(`${API_URL}/servers/${serverId}/status`, createFetchOptions(headers));
+    console.log(`Attempting to fetch status for server ID: ${serverId}`);
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Failed to fetch server status: ${response.statusText}` },
-        { status: response.status }
-      );
+    // Prioritize the correct endpoint based on our backend implementation
+    // then try fallbacks if needed
+    const possibleEndpoints = [
+      `/servers/${serverId}/status`,
+      `/api/servers/${serverId}/status`,  
+      `/servers-status/${serverId}`,
+      `/api/v1/servers/${serverId}/status`,
+      `/v1/servers/${serverId}/status`,
+      `/server/${serverId}/status`,
+      `/api/server/${serverId}/status`
+    ];
+
+    let response;
+    let endpointUsed;
+
+    for (const endpoint of possibleEndpoints) {
+      try {
+        console.log(`Trying status endpoint: ${backendUrl}${endpoint}`);
+        response = await fetch(`${backendUrl}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          cache: 'no-store',
+        });
+        
+        console.log(`Status fetch from ${backendUrl}${endpoint}, status: ${response?.status}`);
+        
+        if (response.ok) {
+          endpointUsed = endpoint;
+          console.log(`Successfully found server status at: ${backendUrl}${endpoint}`);
+          break;
+        }
+      } catch (error) {
+        console.log(`Failed to fetch from ${endpoint}:`, error);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Server status fetch failed. Tried ${possibleEndpoints.length} different endpoints`);
     }
 
     const data = await response.json();
@@ -61,12 +88,12 @@ export async function GET(
         return peer;
       });
     }
-
+    
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching server status:', error);
+    console.error(`Server status fetch error:`, error);
     return NextResponse.json(
-      { error: 'Failed to fetch server status' },
+      { error: 'Failed to fetch server status from backend' },
       { status: 500 }
     );
   }

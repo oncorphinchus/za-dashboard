@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createFetchOptions } from '@/lib/httpClient';
+import { disableCertificateVerification } from '@/lib/httpClient';
+
+// Disable certificate verification at module level for server-side code
+disableCertificateVerification();
 
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
@@ -17,20 +20,11 @@ export async function GET(
 ) {
   try {
     const { serverId, peerPublicKey } = params;
+    const backendUrl = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL;
+    const apiKey = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_API_KEY || process.env.MANAGEMENT_BACKEND_API_KEY;
 
-    // Validate environment variables
-    if (!API_URL) {
-      return NextResponse.json(
-        { error: 'Backend URL not configured' },
-        { status: 500 }
-      );
-    }
-
-    if (!API_KEY) {
-      return NextResponse.json(
-        { error: 'Backend API key not configured' },
-        { status: 500 }
-      );
+    if (!backendUrl || !apiKey) {
+      throw new Error('Missing required environment variables');
     }
 
     if (!serverId) {
@@ -47,16 +41,45 @@ export async function GET(
       );
     }
 
-    // Fetch peer configuration from the backend with self-signed certificate handling
-    const response = await fetch(`${API_URL}/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}/config`, 
-      createFetchOptions(headers)
-    );
+    console.log(`Attempting to fetch config for peer on server: ${serverId}`);
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Failed to fetch peer configuration: ${response.statusText}` },
-        { status: response.status }
-      );
+    // Try different possible endpoint paths
+    const possibleEndpoints = [
+      `/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}/config`,
+      `/api/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}/config`,
+      `/api/v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}/config`,
+      `/v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}/config`,
+      `/server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}/config`,
+      `/api/server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}/config`,
+    ];
+
+    let response;
+    let endpointUsed;
+
+    for (const endpoint of possibleEndpoints) {
+      try {
+        console.log(`Trying endpoint: ${backendUrl}${endpoint}`);
+        response = await fetch(`${backendUrl}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          cache: 'no-store',
+        });
+        
+        console.log(`Config fetch from ${backendUrl}${endpoint}, status: ${response?.status}`);
+        
+        if (response.ok) {
+          endpointUsed = endpoint;
+          console.log(`Successfully fetched peer config via endpoint: ${backendUrl}${endpoint}`);
+          break;
+        }
+      } catch (error) {
+        console.log(`Failed to fetch peer config via ${endpoint}:`, error);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Fetch peer config failed. Tried ${possibleEndpoints.length} different endpoints`);
     }
 
     const data = await response.json();
@@ -64,7 +87,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching peer configuration:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch peer configuration' },
+      { error: 'Failed to fetch peer configuration from backend' },
       { status: 500 }
     );
   }

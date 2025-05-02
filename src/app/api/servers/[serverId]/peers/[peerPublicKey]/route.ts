@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createFetchOptions } from '@/lib/httpClient';
+import { disableCertificateVerification } from '@/lib/httpClient';
+
+// Disable certificate verification at module level for server-side code
+disableCertificateVerification();
 
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
@@ -17,20 +20,11 @@ export async function DELETE(
 ) {
   try {
     const { serverId, peerPublicKey } = params;
+    const backendUrl = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL;
+    const apiKey = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_API_KEY || process.env.MANAGEMENT_BACKEND_API_KEY;
 
-    // Validate environment variables
-    if (!API_URL) {
-      return NextResponse.json(
-        { error: 'Backend URL not configured' },
-        { status: 500 }
-      );
-    }
-
-    if (!API_KEY) {
-      return NextResponse.json(
-        { error: 'Backend API key not configured' },
-        { status: 500 }
-      );
+    if (!backendUrl || !apiKey) {
+      throw new Error('Missing required environment variables');
     }
 
     if (!serverId) {
@@ -47,18 +41,45 @@ export async function DELETE(
       );
     }
 
-    // Remove peer from the backend with self-signed certificate handling
-    const fetchOptions = createFetchOptions(headers);
-    const response = await fetch(`${API_URL}/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`, {
-      ...fetchOptions,
-      method: 'DELETE',
-    });
+    console.log(`Attempting to remove peer from server: ${serverId}`);
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Failed to remove peer: ${response.statusText}` },
-        { status: response.status }
-      );
+    // Try different possible endpoint paths
+    const possibleEndpoints = [
+      `/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `/api/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `/api/v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `/v1/servers/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `/server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+      `/api/server/${serverId}/peers/${encodeURIComponent(peerPublicKey)}`,
+    ];
+
+    let response;
+    let endpointUsed;
+
+    for (const endpoint of possibleEndpoints) {
+      try {
+        console.log(`Trying endpoint: ${backendUrl}${endpoint}`);
+        response = await fetch(`${backendUrl}${endpoint}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+        });
+        
+        console.log(`Delete peer request to ${backendUrl}${endpoint}, status: ${response?.status}`);
+        
+        if (response.ok) {
+          endpointUsed = endpoint;
+          console.log(`Successfully removed peer via endpoint: ${backendUrl}${endpoint}`);
+          break;
+        }
+      } catch (error) {
+        console.log(`Failed to remove peer via ${endpoint}:`, error);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Remove peer failed. Tried ${possibleEndpoints.length} different endpoints`);
     }
 
     // Just return success message
@@ -66,7 +87,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error removing peer:', error);
     return NextResponse.json(
-      { error: 'Failed to remove peer' },
+      { error: 'Failed to remove peer from backend' },
       { status: 500 }
     );
   }

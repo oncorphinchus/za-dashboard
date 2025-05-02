@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createFetchOptions } from '@/lib/httpClient';
+import { disableCertificateVerification } from '@/lib/httpClient';
+
+// Disable certificate verification at module level for server-side code
+disableCertificateVerification();
 
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
@@ -18,20 +21,11 @@ export async function POST(
   try {
     const { serverId } = params;
     const body = await request.json();
+    const backendUrl = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL;
+    const apiKey = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_API_KEY || process.env.MANAGEMENT_BACKEND_API_KEY;
 
-    // Validate environment variables
-    if (!API_URL) {
-      return NextResponse.json(
-        { error: 'Backend URL not configured' },
-        { status: 500 }
-      );
-    }
-
-    if (!API_KEY) {
-      return NextResponse.json(
-        { error: 'Backend API key not configured' },
-        { status: 500 }
-      );
+    if (!backendUrl || !apiKey) {
+      throw new Error('Missing required environment variables');
     }
 
     if (!serverId) {
@@ -48,19 +42,47 @@ export async function POST(
       );
     }
 
-    // Create a new peer on the backend with self-signed certificate handling
-    const fetchOptions = createFetchOptions(headers);
-    const response = await fetch(`${API_URL}/servers/${serverId}/peers`, {
-      ...fetchOptions,
-      method: 'POST',
-      body: JSON.stringify(body)
-    });
+    console.log(`Attempting to add peer to server: ${serverId}`);
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Failed to add peer: ${response.statusText}` },
-        { status: response.status }
-      );
+    // Try different possible endpoint paths
+    const possibleEndpoints = [
+      `/servers/${serverId}/peers`,
+      `/api/servers/${serverId}/peers`,
+      `/api/v1/servers/${serverId}/peers`,
+      `/v1/servers/${serverId}/peers`,
+      `/server/${serverId}/peers`,
+      `/api/server/${serverId}/peers`,
+    ];
+
+    let response;
+    let endpointUsed;
+
+    for (const endpoint of possibleEndpoints) {
+      try {
+        console.log(`Trying endpoint: ${backendUrl}${endpoint}`);
+        response = await fetch(`${backendUrl}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(body),
+        });
+        
+        console.log(`Add peer request to ${backendUrl}${endpoint}, status: ${response?.status}`);
+        
+        if (response.ok) {
+          endpointUsed = endpoint;
+          console.log(`Successfully added peer via endpoint: ${backendUrl}${endpoint}`);
+          break;
+        }
+      } catch (error) {
+        console.log(`Failed to add peer via ${endpoint}:`, error);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Add peer failed. Tried ${possibleEndpoints.length} different endpoints`);
     }
 
     const data = await response.json();
@@ -68,7 +90,7 @@ export async function POST(
   } catch (error) {
     console.error('Error adding peer:', error);
     return NextResponse.json(
-      { error: 'Failed to add peer' },
+      { error: 'Failed to add peer to backend' },
       { status: 500 }
     );
   }

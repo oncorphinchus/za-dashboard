@@ -1,69 +1,69 @@
 import { NextResponse } from 'next/server';
-import { createFetchOptions, disableCertificateVerification, createAuthHeaders } from '@/lib/httpClient';
+import { disableCertificateVerification } from '@/lib/httpClient';
 
 // Disable certificate verification at module level for server-side code
 disableCertificateVerification();
 
-// Backend API URL and key from environment variables
-const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
-const API_KEY = process.env.MANAGEMENT_BACKEND_API_KEY || '';
-
-// Create headers with API key using the helper function
-const headers = createAuthHeaders(API_KEY);
-
-// Log the request details for debugging (omitting sensitive information)
-console.log(`Making request to: ${API_URL}/servers`);
-console.log('Authorization header format used:', Object.keys(headers).filter(h => h !== 'Content-Type')[0]);
-
 export async function GET() {
   try {
-    // Validate environment variables
-    if (!API_URL) {
-      return NextResponse.json(
-        { error: 'Backend URL not configured' },
-        { status: 500 }
-      );
+    const backendUrl = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL;
+    const apiKey = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_API_KEY || process.env.MANAGEMENT_BACKEND_API_KEY;
+
+    if (!backendUrl || !apiKey) {
+      throw new Error('Missing required environment variables');
     }
 
-    if (!API_KEY) {
-      return NextResponse.json(
-        { error: 'Backend API key not configured' },
-        { status: 500 }
-      );
-    }
+    console.log("Attempting to fetch servers from backend URL:", backendUrl);
 
-    // Fetch servers from the backend using the agent that allows self-signed certificates
-    const response = await fetch(`${API_URL}/servers`, createFetchOptions(headers));
+    // Try different possible endpoint paths
+    const possibleEndpoints = [
+      '/servers-list',  // Try our new endpoint first
+      '/servers',
+      '/api/servers',
+      '/api/v1/servers',
+      '/v1/servers'
+    ];
 
-    // Log response status for debugging
-    console.log(`Backend response status: ${response.status}`);
-    
-    if (!response.ok) {
-      let errorDetail = '';
+    let response;
+    let endpointUsed;
+
+    for (const endpoint of possibleEndpoints) {
       try {
-        // Try to get more details from the error response
-        const errorResponse = await response.text();
-        errorDetail = errorResponse;
-        console.log('Error response:', errorResponse);
-      } catch (e) {
-        console.log('Could not read error response body');
+        console.log(`Trying endpoint: ${backendUrl}${endpoint}`);
+        response = await fetch(`${backendUrl}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          cache: 'no-store',
+        });
+        
+        console.log(`Attempting fetch from ${backendUrl}${endpoint}, status: ${response?.status}`);
+        
+        if (response.ok) {
+          endpointUsed = endpoint;
+          console.log(`Successfully found servers at: ${backendUrl}${endpoint}`);
+          break;
+        }
+      } catch (error) {
+        console.log(`Failed to fetch from ${endpoint}:`, error);
       }
+    }
 
-      return NextResponse.json(
-        { 
-          error: `Failed to fetch servers: ${response.statusText}`, 
-          detail: errorDetail 
-        },
-        { status: response.status }
-      );
+    if (!response || !response.ok) {
+      throw new Error(`Backend servers fetch failed. Tried ${possibleEndpoints.length} different endpoints`);
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    
+    // Check if the data is wrapped in a 'servers' property, and if so, extract it
+    const serversData = data.servers ? data.servers : data;
+    console.log("Servers data format:", serversData);
+    
+    return NextResponse.json(serversData);
   } catch (error) {
-    console.error('Error fetching servers:', error);
+    console.error('Servers fetch error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch servers' },
+      { error: 'Failed to fetch servers from backend' },
       { status: 500 }
     );
   }

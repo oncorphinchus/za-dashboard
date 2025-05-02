@@ -1,5 +1,72 @@
 # Troubleshooting Guide
 
+## 404 or 403 API Errors
+
+If you're encountering 404 (Not Found) or 403 (Forbidden) errors when connecting to your backend, follow these steps:
+
+### 1. Check Your Environment Variables
+
+Make sure you're using the correct environment variable names:
+
+```
+NEXT_PUBLIC_MANAGEMENT_BACKEND_URL=https://your-actual-backend-url.com
+NEXT_PUBLIC_MANAGEMENT_BACKEND_API_KEY=your_actual_api_key
+```
+
+Run our environment variable check script:
+
+```
+node scripts/check-env.js
+```
+
+### 2. Test API Connectivity
+
+Use our diagnostic script to test all possible API endpoints and authentication methods:
+
+```
+node scripts/api-diagnostic.js
+```
+
+If you need to provide the URL and key directly:
+
+```
+node scripts/api-diagnostic.js "https://your-backend-url.com" "your-api-key"
+```
+
+### 3. Self-Signed Certificate Issues
+
+If you're using a backend with a self-signed certificate, we've implemented multiple layers of protection:
+
+1. Set `NODE_TLS_REJECT_UNAUTHORIZED=0` in your `.env.local` file
+2. We've added code to disable certificate validation in server-side API routes
+
+### 4. Check Server Logs
+
+The API routes now output detailed logs about which endpoints they're trying. Check your server logs to see:
+
+- Which endpoints are being attempted
+- What status codes are being returned 
+- Any error messages from failed requests
+
+### 5. Compatible API Routes
+
+The dashboard has been updated to try multiple endpoint patterns for each operation:
+
+- Server listing: `/servers`, `/api/servers`, `/servers-list`, etc.
+- Server status: `/servers/[id]/status`, `/api/servers/[id]/status`, etc.
+- Peer operations: Multiple endpoint patterns for adding, removing, and getting peer configs
+
+This ensures maximum compatibility with different backend implementations.
+
+### 6. Important Change to Note
+
+We've switched from using:
+- `MANAGEMENT_BACKEND_API_KEY` 
+to 
+- `NEXT_PUBLIC_MANAGEMENT_BACKEND_API_KEY`
+
+Make sure you update your environment variables accordingly.
+
 ## 403 Forbidden Errors
 
 If you're encountering 403 Forbidden errors when connecting to your backend, this indicates an authentication or authorization issue. Follow these steps to diagnose and fix the problem:
