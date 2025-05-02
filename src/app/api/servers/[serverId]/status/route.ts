@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createFetchOptions } from '@/lib/httpClient';
 
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
@@ -39,11 +40,8 @@ export async function GET(
       );
     }
 
-    // Fetch server status from the backend
-    const response = await fetch(`${API_URL}/servers/${serverId}/status`, {
-      headers,
-      cache: 'no-store'
-    });
+    // Fetch server status from the backend with self-signed certificate handling
+    const response = await fetch(`${API_URL}/servers/${serverId}/status`, createFetchOptions(headers));
 
     if (!response.ok) {
       return NextResponse.json(

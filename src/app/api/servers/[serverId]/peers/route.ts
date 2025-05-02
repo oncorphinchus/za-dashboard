@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createFetchOptions } from '@/lib/httpClient';
 
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';
@@ -47,10 +48,11 @@ export async function POST(
       );
     }
 
-    // Create a new peer on the backend
+    // Create a new peer on the backend with self-signed certificate handling
+    const fetchOptions = createFetchOptions(headers);
     const response = await fetch(`${API_URL}/servers/${serverId}/peers`, {
+      ...fetchOptions,
       method: 'POST',
-      headers,
       body: JSON.stringify(body)
     });
 

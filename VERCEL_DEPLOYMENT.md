@@ -65,6 +65,14 @@ If your frontend can't connect to your backend:
 2. Verify that your backend allows requests from your Vercel deployment (CORS)
 3. Confirm that your `MANAGEMENT_BACKEND_API_KEY` is valid
 
+### Self-Signed Certificate Issues
+
+The dashboard has built-in support for connecting to backends with self-signed certificates through the Next.js API routes. However, for production:
+
+1. It's strongly recommended to use properly signed SSL certificates from a trusted Certificate Authority
+2. If you must use self-signed certificates in production, be aware that the dashboard disables certificate validation in server-side API routes
+3. For the best security posture, obtain proper SSL certificates for your backend before deploying to production
+
 ### Build Errors
 
 If your project fails to build:
