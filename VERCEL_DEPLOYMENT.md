@@ -67,11 +67,27 @@ If your frontend can't connect to your backend:
 
 ### Self-Signed Certificate Issues
 
-The dashboard has built-in support for connecting to backends with self-signed certificates through the Next.js API routes. However, for production:
+The dashboard has built-in support for connecting to backends with self-signed certificates through various methods implemented in the Next.js API routes:
 
-1. It's strongly recommended to use properly signed SSL certificates from a trusted Certificate Authority
-2. If you must use self-signed certificates in production, be aware that the dashboard disables certificate validation in server-side API routes
-3. For the best security posture, obtain proper SSL certificates for your backend before deploying to production
+1. **What we've implemented:**
+   - Custom HTTPS Agent with certificate validation disabled
+   - Setting `NODE_TLS_REJECT_UNAUTHORIZED=0` environment variable in server-side code
+   - Configuring Next.js `serverRuntimeConfig` to include this setting
+
+2. **Vercel-specific considerations:**
+   - You don't need to set environment variables in Vercel for certificate handling
+   - Our implementation handles this automatically in the serverless functions
+   - The certificate validation is only disabled for server-side code, not browser requests
+
+3. **Security recommendations:**
+   - This approach is suitable for development and testing
+   - For production, it's strongly recommended to use properly signed SSL certificates
+   - Consider conditionally applying these bypasses only in non-production environments
+
+4. **If you're still experiencing certificate errors:**
+   - Ensure the backend URL is correct and the server is reachable
+   - Check if your backend might be using an outdated or invalid SSL configuration
+   - Verify that the Vercel region your app is deployed to can reach your backend server
 
 ### Build Errors
 

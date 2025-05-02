@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createFetchOptions } from '@/lib/httpClient';
+import { createFetchOptions, disableCertificateVerification } from '@/lib/httpClient';
+
+// Disable certificate verification at module level for server-side code
+disableCertificateVerification();
 
 // Backend API URL and key from environment variables
 const API_URL = process.env.NEXT_PUBLIC_MANAGEMENT_BACKEND_URL || '';

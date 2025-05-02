@@ -91,10 +91,21 @@ MIT
 
 ### Self-Signed Certificates
 
-This dashboard includes a utility to handle self-signed certificates from the backend API. While this is useful for development and testing, please note:
+This dashboard includes utilities to handle self-signed certificates from the backend API. While this is useful for development and testing, please note:
 
-- For production environments, it's recommended to use properly signed SSL certificates from a trusted Certificate Authority
-- The dashboard disables certificate validation only in the server-side API routes
-- This approach maintains security in the browser while allowing the server-side components to connect to backends with self-signed certificates
+- For production environments, it's strongly recommended to use properly signed SSL certificates from a trusted Certificate Authority
+- The dashboard disables certificate validation in server-side API routes using multiple approaches:
+  1. A custom HTTPS Agent with `rejectUnauthorized: false`
+  2. Setting `process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'` in server-side code
+  3. Configuring `serverRuntimeConfig` in `next.config.js`
+- These approaches only affect server-side code, not browser requests
+- **IMPORTANT SECURITY WARNING:** Disabling certificate validation reduces security. Only use with trusted backends.
 
-If you're using a properly signed certificate for your backend API, no additional configuration is needed.
+If you're using a properly signed certificate for your backend API, these workarounds will still function but aren't necessary for security.
+
+### Vercel Deployment
+
+For Vercel deployment, the self-signed certificate handling is automatically included. However, for maximum security in production:
+
+1. Use a properly signed SSL certificate for your backend API
+2. Consider removing or conditionally applying the certificate validation bypasses in production environments
