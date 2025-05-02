@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Dark Base & Primary Tones */
+    --onyx-bg: 217 11% 12%; /* #1A1D21 */
+    --charcoal-surface: 216 11% 17%; /* #252A30 */
+    --slate-interactive: 216 10% 28%; /* #3E454F */
+    --graphite-border: 217 9% 22%; /* #30363D */
+    
+    /* Wood Tones */
+    --dark-walnut: 25 22% 25%; /* #4A3C31 */
+    --natural-oak: 30 28% 43%; /* #8B6F4E */
+    --birch-highlight: 32 28% 60%; /* #C8A36C */
+    
+    /* Cream Neutrals */
+    --ivory-paper: 52 30% 94%; /* #F5F2EA */
+    --parchment-card: 48 20% 90%; /* #EDEAE0 */
+    --alabaster-hover: 48 15% 87%; /* #E5E2D9 */
+    --stone-border-light: 45 10% 80%; /* #D1CDC4 */
+    
+    /* Pastel Accents */
+    --willow-green-primary: 115 12% 68%; /* #A3B8A1 */
+    --dusty-blue-secondary: 209 15% 71%; /* #9DB5CC */
+    --powder-peach-accent: 18 30% 85%; /* #EOCDC3 */
+    --lavender-frost-info: 260 12% 76%; /* #C0B9CC */
+    
+    /* Text Colors */
+    --text-primary-on-dark: 210 30% 92%; /* #E6EDF3 */
+    --text-secondary-on-dark: 214 10% 59%; /* #8D96A0 */
+    --text-primary-on-light: 216 13% 21%; /* #2F353C */
+    --text-secondary-on-light: 214 10% 38%; /* #57606A */
+    --text-on-accent: 216 11% 17%; /* #252A30 */
+    
+    /* Semantic/Status Colors */
+    --success-green: 115 20% 63%; /* #7FC75A */
+    --warning-amber: 34 55% 61%; /* #D9A05B */
+    --error-rose: 0 42% 69%; /* #D88484 */
+    --info-blue: 212 24% 65%; /* #8AA5BD */
+
+    /* shadcn/ui defaults (mapped to our palette) */
+    --background: 52 30% 94%; /* Using ivory-paper */
+    --foreground: 216 13% 21%; /* Using text-primary-on-light */
+    
+    --card: 48 20% 90%; /* Using parchment-card */
+    --card-foreground: 216 13% 21%; /* Using text-primary-on-light */
+    
+    --popover: 48 20% 90%; /* Using parchment-card */
+    --popover-foreground: 216 13% 21%; /* Using text-primary-on-light */
+    
+    --primary: 115 12% 68%; /* Using willow-green-primary */
+    --primary-foreground: 216 11% 17%; /* Using text-on-accent */
+    
+    --secondary: 209 15% 71%; /* Using dusty-blue-secondary */
+    --secondary-foreground: 216 11% 17%; /* Using text-on-accent */
+    
+    --muted: 48 15% 87%; /* Using alabaster-hover */
+    --muted-foreground: 214 10% 38%; /* Using text-secondary-on-light */
+    
+    --accent: 260 12% 76%; /* Using lavender-frost-info */
+    --accent-foreground: 216 11% 17%; /* Using text-on-accent */
+    
+    --destructive: 0 42% 69%; /* Using error-rose */
+    --destructive-foreground: 216 11% 17%; /* Using text-on-accent */
+    
+    --border: 45 10% 80%; /* Using stone-border-light */
+    --input: 45 10% 80%; /* Using stone-border-light */
+    --ring: 115 12% 68%; /* Using willow-green-primary */
+    
+    --radius: 0.5rem;
+    
+    --chart-1: 12 76% 61%;
+    
+    --chart-2: 173 58% 39%;
+    
+    --chart-3: 197 37% 24%;
+    
+    --chart-4: 43 74% 66%;
+    
+    --chart-5: 27 87% 67%;
+  }
+ 
+  .dark {
+    /* In dark mode, we invert our palette strategy */
+    --background: 217 11% 12%; /* Using onyx-bg */
+    --foreground: 210 30% 92%; /* Using text-primary-on-dark */
+    
+    --card: 216 11% 17%; /* Using charcoal-surface */
+    --card-foreground: 210 30% 92%; /* Using text-primary-on-dark */
+    
+    --popover: 216 11% 17%; /* Using charcoal-surface */
+    --popover-foreground: 210 30% 92%; /* Using text-primary-on-dark */
+    
+    --primary: 115 12% 68%; /* Using willow-green-primary */
+    --primary-foreground: 216 11% 17%; /* Using text-on-accent */
+    
+    --secondary: 216 10% 28%; /* Using slate-interactive */
+    --secondary-foreground: 210 30% 92%; /* Using text-primary-on-dark */
+    
+    --muted: 217 9% 22%; /* Using graphite-border */
+    --muted-foreground: 214 10% 59%; /* Using text-secondary-on-dark */
+    
+    --accent: 217 9% 22%; /* Using graphite-border */
+    --accent-foreground: 210 30% 92%; /* Using text-primary-on-dark */
+    
+    --destructive: 0 42% 69%; /* Using error-rose */
+    --destructive-foreground: 216 11% 17%; /* Using text-on-accent */
+    
+    --border: 217 9% 22%; /* Using graphite-border */
+    --input: 217 9% 22%; /* Using graphite-border */
+    --ring: 115 12% 68%; /* Using willow-green-primary */
+    
+    --radius: 0.5rem;
+    
+    --chart-1: 220 70% 50%;
+    
+    --chart-2: 160 60% 45%;
+    
+    --chart-3: 30 80% 55%;
+    
+    --chart-4: 280 65% 60%;
+    
+    --chart-5: 340 75% 55%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+} 
